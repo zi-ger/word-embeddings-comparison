@@ -43,7 +43,7 @@ class KerasDataOrganizer:
         self.max_length = max([len(s.split()) for s in self.train_data + self.test_data])
 
         self.vectorizer = TextVectorization(output_sequence_length=self.max_length,)
-        text_ds = data.Dataset.from_tensor_slices(self.train_data_lists + self.test_data_lists).batch(128)
+        text_ds = data.Dataset.from_tensor_slices(self.train_data_lists).batch(128)
         self.vectorizer.adapt(text_ds)
 
         self.vocabulary = self.vectorizer.get_vocabulary()

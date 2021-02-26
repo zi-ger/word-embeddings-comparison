@@ -7,10 +7,6 @@ import numpy as np
 from tensorflow import keras
 from tqdm import tqdm
 
-from gensim.models.doc2vec import Doc2Vec, TaggedDocument
-from gensim.models.fasttext import FastText
-from gensim.models import Word2Vec
-
 from keras_data_organizer import KerasDataOrganizer
 
 
