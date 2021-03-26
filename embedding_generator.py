@@ -1,25 +1,27 @@
-import argparse
-import time
-import sys
-import os
+"""Generate Doc2Vec, Word2Vec and FastText embeddings"""
 
+import argparse
+import os
+import sys
+import time
+
+from gensim.models import Word2Vec
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from gensim.models.fasttext import FastText
-from gensim.models import Word2Vec
-
-from tqdm import tqdm
 
 from utility import opener_util
 
 
 def main():
+    """Core script code."""
+
     # Define argument parser
     parser = argparse.ArgumentParser(
         prog='embedding_generator',
-        formatter_class=argparse.RawDescriptionHelpFormatter, 
+        formatter_class=argparse.RawDescriptionHelpFormatter,
         description="""
         Generate word embeddings using Word2Vec, Doc2Vec and fastText algorithms.
-        
+
         The corpus provided will be cleaned before any processing, using the following steps:
             - unescape and remove html tags
             - remove usernames, punctuation and extra spaces
@@ -31,32 +33,35 @@ def main():
             - neg.txt
 
             These files must contain one sentence per line.
-        
+
         ** If --csv option is used, attempt to the following:
             - Only one file is expected
 
-            - Column 0 : sentence label, must be: 
+            - Column 0 : sentence label, must be:
                 0: if negative
                 4: if positive
-            
+
             - Column 1 : sentence text
-        
+
         *** If --dir option is used, attempt to the following:
             - The program will look for two separate folders 'pos/' and 'neg/'
-            
+
             - It will open all '.txt' files in each folder
 
-            - One file equals one line in the new processed output file 
+            - One file equals one line in the new processed output file
         """)
 
     # Define positional arguments
     parser.add_argument('path', type=str, help='corpus path')
     parser.add_argument('size', type=int, help='embedding size', default=100)
     parser.add_argument('epochs', type=int, help='training epochs', default=10)
-    parser.add_argument('model', type=str, help='algorithm model', choices=['word2vec', 'doc2vec', 'fasttext'])
+    parser.add_argument('min_count', type=int, help='minimun word count', default=1)
+    parser.add_argument('model', type=str, help='algorithm model',
+        choices=['word2vec', 'doc2vec', 'fasttext'])
 
     # Define not exclusive optional arguments
-    parser.add_argument('--save', type=str, help='filename to save generated embeddings', metavar='filename')
+    parser.add_argument('--save', type=str,help='filename to save generated embeddings',
+        metavar='filename')
 
     # Defines exclusive optional arguments
     group = parser.add_mutually_exclusive_group()
@@ -74,7 +79,9 @@ def main():
     save_filename = args.save
     embedding_dim = args.size
     epochs = args.epochs
+    min_count = args.min_count
     model = args.model
+
     is_csv = args.csv
     is_dir = args.dir
     path = args.path
@@ -87,22 +94,22 @@ def main():
     # Check arguments
     if model == 'word2vec':
         print('Generating Word2Vec embedding...')
-        generate_w2v_embedding(corpus, embedding_dim, epochs, save_filename)
-    
+        generate_w2v_embedding(corpus, embedding_dim, epochs, min_count, save_filename)
+
     elif model == 'doc2vec':
         print('Generating Doc2Vec embedding...')
-        generate_d2v_embedding(corpus, embedding_dim, epochs, save_filename)
+        generate_d2v_embedding(corpus, embedding_dim, epochs, min_count, save_filename)
 
     elif model == 'fasttext':
         print('Generating fastText embedding...')
-        generate_fasttext_embedding(corpus, embedding_dim, epochs, save_filename)
+        generate_fasttext_embedding(corpus, embedding_dim, epochs, min_count, save_filename)
 
 
-def generate_w2v_embedding(corpus: list, embedding_dim: int, epochs: int, save_filename: str):
+def generate_w2v_embedding(corpus: list, embedding_dim: int, epochs: int, min_count: int, save_filename: str):
     """Generate Word2Vec Embedding and saves to file"""
 
     start_time = time.time()
-    w2v_model = Word2Vec(size=embedding_dim, min_count=3, iter=50, workers=8)
+    w2v_model = Word2Vec(size=embedding_dim, min_count=min_count, workers=8, sg=1) # 0 CBOW - 1 skip-gram
     print('Building vocab...')
     w2v_model.build_vocab(corpus)
     print('Training model...')
@@ -112,28 +119,28 @@ def generate_w2v_embedding(corpus: list, embedding_dim: int, epochs: int, save_f
     w2v_model.wv.save_word2vec_format(f'word2vec_{save_filename}_embedding_{embedding_dim}DIM_{epochs}EP.txt', binary=False)
 
 
-def generate_d2v_embedding(corpus: list, embedding_dim: int, epochs: int, save_filename: str):
+def generate_d2v_embedding(corpus: list, embedding_dim: int, epochs: int, min_count: int, save_filename: str):
     """Generate Doc2Vec Embedding and saves to file"""
 
     tagged_data = [TaggedDocument(d, [i]) for i, d in enumerate(corpus)]
 
     start_time = time.time()
-    d2v_model = Doc2Vec(vector_size=embedding_dim, min_count=3, epochs=epochs,)
+    d2v_model = Doc2Vec(vector_size=embedding_dim, min_count=min_count)
     print('Building vocab...')
     d2v_model.build_vocab(tagged_data)
     print('Training model...')
-    d2v_model.train(tagged_data, total_examples=d2v_model.corpus_count, epochs=d2v_model.epochs)
+    d2v_model.train(tagged_data, total_examples=d2v_model.corpus_count, epochs=epochs)
     print(f'Done in {time.time() - start_time} seconds.')
     print('Saving model...')
-    
+
     d2v_model.wv.save_word2vec_format(f'doc2vec_{save_filename}_embedding_{embedding_dim}DIM_{epochs}EP.txt', binary=False)
 
 
-def generate_fasttext_embedding(corpus: list, embedding_dim: int, epochs: int, save_filename: str):
+def generate_fasttext_embedding(corpus: list, embedding_dim: int, epochs: int, min_count: int, save_filename: str):
     """Generate fastText Embedding and saves to file"""
 
     start_time = time.time()
-    ft_model = FastText(size=embedding_dim, min_count=3, iter=50, workers=8)
+    ft_model = FastText(size=embedding_dim, min_count=min_count, workers=8)
     print('Building vocab...')
     ft_model.build_vocab(corpus)
     print('Training model...')

@@ -1,6 +1,10 @@
-__pycache__
 .DS_Store
 .vscode
-venv
+__pycache__
 data
+data_small
+models
 old
+plots
+results
+venv

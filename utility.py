@@ -1,13 +1,14 @@
+"""Utility module."""
+
 import csv
 import glob
 import html
 import os
 import re
 import sys
+from string import punctuation
 
 import contractions
-from string import punctuation
-# from textblob import TextBlob
 from tqdm import tqdm
 
 # Removes single quote from punctuation
@@ -15,7 +16,7 @@ punct = punctuation.replace("'", "")
 
 def transform_text(raw_str: str) -> str:
     """Transforms a given string, unescaping and
-    removing html tags, usernames, punctuation, 
+    removing html tags, usernames, punctuation,
     extra spaces, lowering the text and expanding
     contractions.
 
@@ -25,35 +26,31 @@ def transform_text(raw_str: str) -> str:
     Returns:
         str: processed string
     """
-    
+
     # Unescape html sentences
     text = html.unescape(raw_str)
-    
+
     # remove any remaining html tag
     text = re.sub(re.compile('<.*?>'), '', text)
-    
+
     # remove links
     text = re.sub(r'(?:\@|https?\://)\S+', '', text)
 
     # remove contractions
     text = contractions.fix(text)
-    
+
     # lower text
     text = text.lower()
-    
+
     # replace point and hyphen with space to avoid errors in sentences that have no space between them
     text = text.replace('.', ' ')
     text = text.replace('-', ' ')
-    
+
     # remove ponctuation
     text = text.translate(str.maketrans('', '', punctuation))
-    
+
     # remove extra spaces
     text = ' '.join(text.split())
-
-    # correct misspelled words
-    # text = str(TextBlob(text).correct()) 
-    # function above was misscorrecting slangs and names
 
     return text
 
@@ -70,7 +67,7 @@ def open_file(path: str, is_csv: bool = False, encoding: str = 'latin-1', verbos
     Returns:
         list: list of sentences from the file
     """
-    
+
     data = []
 
     try:
@@ -87,7 +84,7 @@ def open_file(path: str, is_csv: bool = False, encoding: str = 'latin-1', verbos
     except Exception as er:
         sys.exit('Error opening file: ' + str(er))
 
-    return data 
+    return data
 
 
 def opener_util(path:str, is_csv: bool = False, is_dir: bool = False, verbose: bool = True) -> tuple:
@@ -104,7 +101,7 @@ def opener_util(path:str, is_csv: bool = False, is_dir: bool = False, verbose: b
     """
 
     input_path = os.path.abspath(path)
-    
+
     # Initialize lists
     positive_data = []
     negative_data = []
@@ -138,7 +135,7 @@ def opener_util(path:str, is_csv: bool = False, is_dir: bool = False, verbose: b
                     if line_polarity == 0:
                         negative_data.append(line_text)
                     if line_polarity == 4:
-                        positive_data.append(line_text)                     
+                        positive_data.append(line_text)
 
                 return positive_data, negative_data
 
@@ -163,7 +160,7 @@ def opener_util(path:str, is_csv: bool = False, is_dir: bool = False, verbose: b
                 # Opens positive path
                 for filename in tqdm(glob.glob(pos_path + '*.txt'), desc='Opening ' + pos_path):
                     positive_data.append(open_file(filename, verbose=False)[0])
-                
+
                 # Opens negative path
                 for filename in tqdm(glob.glob(neg_path + '*.txt'), desc='Opening ' + neg_path):
                     negative_data.append(open_file(filename, verbose=False)[0])
@@ -235,7 +232,6 @@ def define_polarity(corpus: list, polarity: int) -> list:
 
     for sentence in tqdm(corpus, desc='Defining polarity'):
         data.append([polarity, sentence])
-    
-    return data
 
+    return data
 
